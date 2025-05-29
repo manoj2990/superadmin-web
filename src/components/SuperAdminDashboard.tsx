@@ -1,13 +1,10 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Badge } from '@/components/ui/badge';
-import { useToast } from '@/hooks/use-toast';
-import { Shield, Users, Plus, Mail, User, LogOut, Crown, LogIn, Building, FolderOpen } from 'lucide-react';
-import axios from 'axios';
+import { Shield, Users, Crown, LogOut } from 'lucide-react';
+import AdminList from './AdminList';
 
 interface Admin {
   _id: string;
@@ -26,229 +23,13 @@ interface SuperAdminDashboardProps {
 
 const SuperAdminDashboard = ({ userData, onLogout }: SuperAdminDashboardProps) => {
   const [admins, setAdmins] = useState<Admin[]>([]);
-  const [newAdmin, setNewAdmin] = useState({
-    email: '',
-    password: '123',
-    name: '',
-    accountType: 'admin'
-  });
-  const [isCreating, setIsCreating] = useState(false);
   const [adminTokens, setAdminTokens] = useState<{[key: string]: any}>({});
-  const [newOrg, setNewOrg] = useState({
-    name: '',
-    organization_admin_email: '',
-    logo_url: 'https://example.com/acme-logo.png'
-  });
-  const [newDept, setNewDept] = useState({
-    organizationId: '',
-    name: '',
-    description: ''
-  });
-  const [isCreatingOrg, setIsCreatingOrg] = useState(false);
-  const [isCreatingDept, setIsCreatingDept] = useState(false);
-  const [showOrgForm, setShowOrgForm] = useState<{[key: string]: boolean}>({});
-  const [showDeptForm, setShowDeptForm] = useState<{[key: string]: boolean}>({});
-  const { toast } = useToast();
 
   useEffect(() => {
     if (userData.adminsCreatedBySuperAdmin) {
       setAdmins(userData.adminsCreatedBySuperAdmin);
     }
   }, [userData]);
-
-  const generateRandomEmail = () => {
-    const randomName = Math.random().toString(36).substring(2, 10);
-    return `admin${randomName}@example.com`;
-  };
-
-  const handleCreateAdmin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsCreating(true);
-
-    try {
-      const token = localStorage.getItem('authToken');
-      const adminData = {
-        ...newAdmin,
-        email: newAdmin.email || generateRandomEmail()
-      };
-
-      const response = await axios.post('http://localhost:4000/api/v1/superadmin/create-admin', adminData, {
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-
-      if (response.data && response.data.data) {
-        // Add new admin to the list
-        setAdmins(prev => [...prev, response.data.data]);
-        
-        // Reset form
-        setNewAdmin({
-          email: '',
-          password: '123',
-          name: '',
-          accountType: 'admin'
-        });
-        
-        toast({
-          title: "Admin Created Successfully",
-          description: `New admin ${adminData.name} has been created.`,
-        });
-      }
-    } catch (error) {
-      console.error('Create admin error:', error);
-      toast({
-        title: "Creation Failed",
-        description: "Failed to create new admin. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsCreating(false);
-    }
-  };
-
-  const handleAdminLogin = async (admin: Admin) => {
-    try {
-      const loginData = {
-        email: admin.email,
-        password: "123"
-      };
-
-      const response = await axios.post('http://localhost:4000/api/v1/auth/login', loginData, {
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (response.data && response.data.data) {
-        // Store admin details with token and organizations
-        setAdminTokens(prev => ({
-          ...prev,
-          [admin._id]: response.data.data
-        }));
-        
-        toast({
-          title: "Admin Login Successful",
-          description: `Logged in as ${admin.name}`,
-        });
-      }
-    } catch (error) {
-      console.error('Admin login error:', error);
-      toast({
-        title: "Login Failed",
-        description: `Failed to login as ${admin.name}`,
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleCreateOrganization = async (adminId: string) => {
-    setIsCreatingOrg(true);
-    try {
-      const adminToken = adminTokens[adminId];
-      if (!adminToken || !adminToken.token) {
-        toast({
-          title: "Error",
-          description: "Admin must be logged in to create organization",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      const response = await axios.post('http://localhost:4000/api/v1/organizations', newOrg, {
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${adminToken.token}`,
-        },
-      });
-
-      if (response.data) {
-        // Refresh admin data by logging in again
-        const admin = admins.find(a => a._id === adminId);
-        if (admin) {
-          await handleAdminLogin(admin);
-        }
-        
-        setNewOrg({
-          name: '',
-          organization_admin_email: '',
-          logo_url: 'https://example.com/acme-logo.png'
-        });
-        setShowOrgForm(prev => ({ ...prev, [adminId]: false }));
-        
-        toast({
-          title: "Organization Created",
-          description: `Organization ${newOrg.name} has been created successfully.`,
-        });
-      }
-    } catch (error) {
-      console.error('Create organization error:', error);
-      toast({
-        title: "Creation Failed",
-        description: "Failed to create organization. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsCreatingOrg(false);
-    }
-  };
-
-  const handleCreateDepartment = async (adminId: string, orgId: string) => {
-    setIsCreatingDept(true);
-    try {
-      const adminToken = adminTokens[adminId];
-      if (!adminToken || !adminToken.token) {
-        toast({
-          title: "Error",
-          description: "Admin must be logged in to create department",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      const deptData = {
-        ...newDept,
-        organizationId: orgId
-      };
-
-      const response = await axios.post('http://localhost:4000/api/v1/departments', deptData, {
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${adminToken.token}`,
-        },
-      });
-
-      if (response.data) {
-        // Refresh admin data by logging in again
-        const admin = admins.find(a => a._id === adminId);
-        if (admin) {
-          await handleAdminLogin(admin);
-        }
-        
-        setNewDept({
-          organizationId: '',
-          name: '',
-          description: ''
-        });
-        setShowDeptForm(prev => ({ ...prev, [`${adminId}-${orgId}`]: false }));
-        
-        toast({
-          title: "Department Created",
-          description: `Department ${newDept.name} has been created successfully.`,
-        });
-      }
-    } catch (error) {
-      console.error('Create department error:', error);
-      toast({
-        title: "Creation Failed",
-        description: "Failed to create department. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsCreatingDept(false);
-    }
-  };
 
   const handleLogout = () => {
     localStorage.removeItem('authToken');
@@ -331,7 +112,7 @@ const SuperAdminDashboard = ({ userData, onLogout }: SuperAdminDashboardProps) =
         </div>
 
         {/* Tabs */}
-        <Tabs defaultValue="superadmin" className="space-y-6">
+        <Tabs defaultValue="admins" className="space-y-6">
           <TabsList className="grid w-full grid-cols-2 lg:w-[400px]">
             <TabsTrigger value="superadmin" className="flex items-center space-x-2">
               <Crown className="w-4 h-4" />
@@ -346,86 +127,30 @@ const SuperAdminDashboard = ({ userData, onLogout }: SuperAdminDashboardProps) =
           {/* Super Admin Tab */}
           <TabsContent value="superadmin" className="space-y-6">
             <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <Crown className="w-5 h-5 text-purple-600" />
-                  <span>Super Admin Information</span>
-                </CardTitle>
-                <CardDescription>
-                  Your account details and system information
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <Label className="text-sm font-medium text-gray-700">Name</Label>
-                    <p className="text-lg font-semibold text-gray-900">{userData.name}</p>
+              <CardContent className="p-6">
+                <div className="space-y-4">
+                  <div className="flex items-center space-x-2 mb-4">
+                    <Crown className="w-5 h-5 text-purple-600" />
+                    <h3 className="text-lg font-semibold text-gray-900">Super Admin Information</h3>
                   </div>
-                  <div>
-                    <Label className="text-sm font-medium text-gray-700">Email</Label>
-                    <p className="text-lg text-gray-900">{userData.email}</p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-sm font-medium text-gray-700">Name</p>
+                      <p className="text-lg font-semibold text-gray-900">{userData.name}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-700">Email</p>
+                      <p className="text-lg text-gray-900">{userData.email}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-700">Account Type</p>
+                      <p className="text-lg text-gray-900 capitalize">{userData.accountType}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-700">Status</p>
+                      <p className="text-lg text-gray-900 capitalize">{userData.accountStatus}</p>
+                    </div>
                   </div>
-                </div>
-                
-                {/* Create Admin Form */}
-                <div className="mt-8 p-6 bg-gray-50 rounded-lg">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                    <Plus className="w-5 h-5 mr-2 text-blue-600" />
-                    Create New Admin
-                  </h3>
-                  <form onSubmit={handleCreateAdmin} className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <Label htmlFor="adminName">Admin Name</Label>
-                        <Input
-                          id="adminName"
-                          value={newAdmin.name}
-                          onChange={(e) => setNewAdmin(prev => ({ ...prev, name: e.target.value }))}
-                          placeholder="Admin-John Doe"
-                          required
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="adminEmail">Email (optional)</Label>
-                        <Input
-                          id="adminEmail"
-                          type="email"
-                          value={newAdmin.email}
-                          onChange={(e) => setNewAdmin(prev => ({ ...prev, email: e.target.value }))}
-                          placeholder="Will auto-generate if empty"
-                        />
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <Label htmlFor="adminPassword">Password</Label>
-                        <Input
-                          id="adminPassword"
-                          type="password"
-                          value={newAdmin.password}
-                          onChange={(e) => setNewAdmin(prev => ({ ...prev, password: e.target.value }))}
-                          placeholder="Password"
-                          required
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="accountType">Account Type</Label>
-                        <Input
-                          id="accountType"
-                          value={newAdmin.accountType}
-                          readOnly
-                          className="bg-gray-100"
-                        />
-                      </div>
-                    </div>
-                    <Button 
-                      type="submit" 
-                      disabled={isCreating}
-                      className="bg-blue-600 hover:bg-blue-700"
-                    >
-                      {isCreating ? 'Creating...' : 'Create Admin'}
-                    </Button>
-                  </form>
                 </div>
               </CardContent>
             </Card>
@@ -433,233 +158,12 @@ const SuperAdminDashboard = ({ userData, onLogout }: SuperAdminDashboardProps) =
 
           {/* Admins Tab */}
           <TabsContent value="admins" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <Users className="w-5 h-5 text-blue-600" />
-                  <span>Admin Management</span>
-                </CardTitle>
-                <CardDescription>
-                  View and manage all admins created by you
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {admins.length > 0 ? (
-                    admins.map((admin) => (
-                      <div key={admin._id} className="p-4 bg-gray-50 rounded-lg border space-y-4">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center space-x-4">
-                            <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                              <User className="w-5 h-5 text-blue-600" />
-                            </div>
-                            <div>
-                              <h4 className="font-semibold text-gray-900">{admin.name}</h4>
-                              <p className="text-sm text-gray-600 flex items-center">
-                                <Mail className="w-4 h-4 mr-1" />
-                                {admin.email}
-                              </p>
-                            </div>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <Badge 
-                              variant={admin.accountStatus === 'active' ? 'default' : 'secondary'}
-                              className={admin.accountStatus === 'active' ? 'bg-green-100 text-green-800' : ''}
-                            >
-                              {admin.accountStatus}
-                            </Badge>
-                            <Badge variant="outline">
-                              {Array.isArray(admin.created_orgs) ? admin.created_orgs.length : 0} orgs
-                            </Badge>
-                            <Button
-                              size="sm"
-                              onClick={() => handleAdminLogin(admin)}
-                              className="bg-blue-600 hover:bg-blue-700"
-                            >
-                              <LogIn className="w-4 h-4 mr-1" />
-                              Login
-                            </Button>
-                          </div>
-                        </div>
-
-                        {/* Show admin details if logged in */}
-                        {adminTokens[admin._id] && (
-                          <div className="mt-4 p-4 bg-white rounded-lg border">
-                            <div className="flex justify-between items-center mb-3">
-                              <h5 className="font-semibold text-gray-900">Admin Details & Organizations</h5>
-                              <Button
-                                size="sm"
-                                onClick={() => setShowOrgForm(prev => ({ ...prev, [admin._id]: !prev[admin._id] }))}
-                                className="bg-green-600 hover:bg-green-700"
-                              >
-                                <Plus className="w-4 h-4 mr-1" />
-                                Add Organization
-                              </Button>
-                            </div>
-                            
-                            {/* Create Organization Form */}
-                            {showOrgForm[admin._id] && (
-                              <div className="mb-4 p-3 bg-green-50 rounded-lg">
-                                <h6 className="font-medium text-gray-900 mb-3">Create New Organization</h6>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                  <div>
-                                    <Label htmlFor="orgName">Organization Name</Label>
-                                    <Input
-                                      id="orgName"
-                                      value={newOrg.name}
-                                      onChange={(e) => setNewOrg(prev => ({ ...prev, name: e.target.value }))}
-                                      placeholder="Organization name"
-                                    />
-                                  </div>
-                                  <div>
-                                    <Label htmlFor="orgEmail">Admin Email</Label>
-                                    <Input
-                                      id="orgEmail"
-                                      value={newOrg.organization_admin_email}
-                                      onChange={(e) => setNewOrg(prev => ({ ...prev, organization_admin_email: e.target.value }))}
-                                      placeholder="admin@example.com"
-                                    />
-                                  </div>
-                                </div>
-                                <div className="flex space-x-2 mt-3">
-                                  <Button
-                                    size="sm"
-                                    onClick={() => handleCreateOrganization(admin._id)}
-                                    disabled={isCreatingOrg}
-                                    className="bg-green-600 hover:bg-green-700"
-                                  >
-                                    {isCreatingOrg ? 'Creating...' : 'Create Organization'}
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => setShowOrgForm(prev => ({ ...prev, [admin._id]: false }))}
-                                  >
-                                    Cancel
-                                  </Button>
-                                </div>
-                              </div>
-                            )}
-
-                            {/* Admin Info */}
-                            <div className="mb-4 p-3 bg-blue-50 rounded-lg">
-                              <div className="grid grid-cols-2 gap-2 text-sm">
-                                <div><span className="font-medium">ID:</span> {adminTokens[admin._id]._id}</div>
-                                <div><span className="font-medium">Account Type:</span> {adminTokens[admin._id].accountType}</div>
-                              </div>
-                            </div>
-
-                            {/* Organizations */}
-                            {adminTokens[admin._id].created_orgs && adminTokens[admin._id].created_orgs.length > 0 && (
-                              <div className="space-y-3">
-                                <h6 className="font-medium text-gray-900 flex items-center">
-                                  <Building className="w-4 h-4 mr-1" />
-                                  Organizations ({adminTokens[admin._id].created_orgs.length})
-                                </h6>
-                                {adminTokens[admin._id].created_orgs.map((org: any) => (
-                                  <div key={org._id} className="p-3 bg-gray-50 rounded-lg">
-                                    <div className="flex justify-between items-start mb-2">
-                                      <h6 className="font-medium text-gray-900">{org.name}</h6>
-                                      <div className="flex space-x-2 text-xs">
-                                        <Badge variant="outline">{org.numberOfEmployees} employees</Badge>
-                                        <Badge variant="outline">{org.numberOfDepartments} departments</Badge>
-                                        <Button
-                                          size="sm"
-                                          onClick={() => setShowDeptForm(prev => ({ ...prev, [`${admin._id}-${org._id}`]: !prev[`${admin._id}-${org._id}`] }))}
-                                          className="bg-purple-600 hover:bg-purple-700 text-xs px-2 py-1"
-                                        >
-                                          <Plus className="w-3 h-3 mr-1" />
-                                          Add Dept
-                                        </Button>
-                                      </div>
-                                    </div>
-
-                                    {/* Create Department Form */}
-                                    {showDeptForm[`${admin._id}-${org._id}`] && (
-                                      <div className="mb-3 p-3 bg-purple-50 rounded-lg">
-                                        <h6 className="font-medium text-gray-900 mb-2">Create New Department</h6>
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                                          <div>
-                                            <Label htmlFor="deptName">Department Name</Label>
-                                            <Input
-                                              id="deptName"
-                                              value={newDept.name}
-                                              onChange={(e) => setNewDept(prev => ({ ...prev, name: e.target.value }))}
-                                              placeholder="Department name"
-                                              className="text-sm"
-                                            />
-                                          </div>
-                                          <div>
-                                            <Label htmlFor="deptDesc">Description</Label>
-                                            <Input
-                                              id="deptDesc"
-                                              value={newDept.description}
-                                              onChange={(e) => setNewDept(prev => ({ ...prev, description: e.target.value }))}
-                                              placeholder="Department description"
-                                              className="text-sm"
-                                            />
-                                          </div>
-                                        </div>
-                                        <div className="flex space-x-2 mt-2">
-                                          <Button
-                                            size="sm"
-                                            onClick={() => handleCreateDepartment(admin._id, org._id)}
-                                            disabled={isCreatingDept}
-                                            className="bg-purple-600 hover:bg-purple-700 text-xs"
-                                          >
-                                            {isCreatingDept ? 'Creating...' : 'Create Department'}
-                                          </Button>
-                                          <Button
-                                            size="sm"
-                                            variant="outline"
-                                            onClick={() => setShowDeptForm(prev => ({ ...prev, [`${admin._id}-${org._id}`]: false }))}
-                                            className="text-xs"
-                                          >
-                                            Cancel
-                                          </Button>
-                                        </div>
-                                      </div>
-                                    )}
-                                    
-                                    {/* Departments */}
-                                    {org.departments && org.departments.length > 0 && (
-                                      <div className="mt-2">
-                                        <p className="text-sm font-medium text-gray-700 mb-1 flex items-center">
-                                          <FolderOpen className="w-3 h-3 mr-1" />
-                                          Departments:
-                                        </p>
-                                        <div className="space-y-1">
-                                          {org.departments.map((dept: any) => (
-                                            <div key={dept._id} className="text-xs bg-white p-2 rounded border">
-                                              <div className="flex justify-between">
-                                                <span className="font-medium">{dept.name}</span>
-                                                <Badge variant="outline" className="text-xs">
-                                                  {dept.courses?.length || 0} courses
-                                                </Badge>
-                                              </div>
-                                              <p className="text-gray-500 mt-1">{dept.description}</p>
-                                            </div>
-                                          ))}
-                                        </div>
-                                      </div>
-                                    )}
-                                  </div>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    ))
-                  ) : (
-                    <div className="text-center py-8 text-gray-500">
-                      <Users className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-                      <p>No admins created yet. Create your first admin above!</p>
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
+            <AdminList 
+              admins={admins}
+              setAdmins={setAdmins}
+              adminTokens={adminTokens}
+              setAdminTokens={setAdminTokens}
+            />
           </TabsContent>
         </Tabs>
       </main>
