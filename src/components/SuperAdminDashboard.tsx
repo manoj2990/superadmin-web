@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -385,7 +384,7 @@ const SuperAdminDashboard = ({ userData, onLogout }: SuperAdminDashboardProps) =
                                 {adminTokens[admin._id].created_orgs.map((org: any) => (
                                   <div key={org._id} className="p-3 bg-gray-50 rounded-lg">
                                     <div className="flex justify-between items-start mb-2">
-                                      <h7 className="font-medium text-gray-900">{org.name}</h7>
+                                      <h6 className="font-medium text-gray-900">{org.name}</h6>
                                       <div className="flex space-x-2 text-xs">
                                         <Badge variant="outline">{org.numberOfEmployees} employees</Badge>
                                         <Badge variant="outline">{org.numberOfDepartments} departments</Badge>
