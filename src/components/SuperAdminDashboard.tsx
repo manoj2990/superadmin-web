@@ -7,7 +7,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { Shield, Users, Plus, Mail, User, LogOut, Crown } from 'lucide-react';
+import { Shield, Users, Plus, Mail, User, LogOut, Crown, LogIn, Building, FolderOpen } from 'lucide-react';
+import axios from 'axios';
 
 interface Admin {
   _id: string;
@@ -15,7 +16,8 @@ interface Admin {
   email: string;
   accountType: string;
   accountStatus: string;
-  created_orgs: string[];
+  created_orgs: string[] | any[];
+  adminDetails?: any;
 }
 
 interface SuperAdminDashboardProps {
@@ -32,6 +34,7 @@ const SuperAdminDashboard = ({ userData, onLogout }: SuperAdminDashboardProps) =
     accountType: 'admin'
   });
   const [isCreating, setIsCreating] = useState(false);
+  const [adminTokens, setAdminTokens] = useState<{[key: string]: any}>({});
   const { toast } = useToast();
 
   useEffect(() => {
@@ -56,20 +59,16 @@ const SuperAdminDashboard = ({ userData, onLogout }: SuperAdminDashboardProps) =
         email: newAdmin.email || generateRandomEmail()
       };
 
-      const response = await fetch('http://localhost:4000/api/v1/superadmin/create-admin', {
-        method: 'POST',
+      const response = await axios.post('http://localhost:4000/api/v1/superadmin/create-admin', adminData, {
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
         },
-        body: JSON.stringify(adminData),
       });
 
-      if (response.ok) {
-        const result = await response.json();
-        
+      if (response.data && response.data.data) {
         // Add new admin to the list
-        setAdmins(prev => [...prev, result.data]);
+        setAdmins(prev => [...prev, response.data.data]);
         
         // Reset form
         setNewAdmin({
@@ -83,10 +82,9 @@ const SuperAdminDashboard = ({ userData, onLogout }: SuperAdminDashboardProps) =
           title: "Admin Created Successfully",
           description: `New admin ${adminData.name} has been created.`,
         });
-      } else {
-        throw new Error('Failed to create admin');
       }
     } catch (error) {
+      console.error('Create admin error:', error);
       toast({
         title: "Creation Failed",
         description: "Failed to create new admin. Please try again.",
@@ -94,6 +92,41 @@ const SuperAdminDashboard = ({ userData, onLogout }: SuperAdminDashboardProps) =
       });
     } finally {
       setIsCreating(false);
+    }
+  };
+
+  const handleAdminLogin = async (admin: Admin) => {
+    try {
+      const loginData = {
+        email: admin.email,
+        password: "123"
+      };
+
+      const response = await axios.post('http://localhost:4000/api/v1/auth/login', loginData, {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (response.data && response.data.data) {
+        // Store admin details with token and organizations
+        setAdminTokens(prev => ({
+          ...prev,
+          [admin._id]: response.data.data
+        }));
+        
+        toast({
+          title: "Admin Login Successful",
+          description: `Logged in as ${admin.name}`,
+        });
+      }
+    } catch (error) {
+      console.error('Admin login error:', error);
+      toast({
+        title: "Login Failed",
+        description: `Failed to login as ${admin.name}`,
+        variant: "destructive",
+      });
     }
   };
 
@@ -243,6 +276,28 @@ const SuperAdminDashboard = ({ userData, onLogout }: SuperAdminDashboardProps) =
                         />
                       </div>
                     </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="adminPassword">Password</Label>
+                        <Input
+                          id="adminPassword"
+                          type="password"
+                          value={newAdmin.password}
+                          onChange={(e) => setNewAdmin(prev => ({ ...prev, password: e.target.value }))}
+                          placeholder="Password"
+                          required
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="accountType">Account Type</Label>
+                        <Input
+                          id="accountType"
+                          value={newAdmin.accountType}
+                          readOnly
+                          className="bg-gray-100"
+                        />
+                      </div>
+                    </div>
                     <Button 
                       type="submit" 
                       disabled={isCreating}
@@ -272,30 +327,99 @@ const SuperAdminDashboard = ({ userData, onLogout }: SuperAdminDashboardProps) =
                 <div className="space-y-4">
                   {admins.length > 0 ? (
                     admins.map((admin) => (
-                      <div key={admin._id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border">
-                        <div className="flex items-center space-x-4">
-                          <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                            <User className="w-5 h-5 text-blue-600" />
+                      <div key={admin._id} className="p-4 bg-gray-50 rounded-lg border space-y-4">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-4">
+                            <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                              <User className="w-5 h-5 text-blue-600" />
+                            </div>
+                            <div>
+                              <h4 className="font-semibold text-gray-900">{admin.name}</h4>
+                              <p className="text-sm text-gray-600 flex items-center">
+                                <Mail className="w-4 h-4 mr-1" />
+                                {admin.email}
+                              </p>
+                            </div>
                           </div>
-                          <div>
-                            <h4 className="font-semibold text-gray-900">{admin.name}</h4>
-                            <p className="text-sm text-gray-600 flex items-center">
-                              <Mail className="w-4 h-4 mr-1" />
-                              {admin.email}
-                            </p>
+                          <div className="flex items-center space-x-2">
+                            <Badge 
+                              variant={admin.accountStatus === 'active' ? 'default' : 'secondary'}
+                              className={admin.accountStatus === 'active' ? 'bg-green-100 text-green-800' : ''}
+                            >
+                              {admin.accountStatus}
+                            </Badge>
+                            <Badge variant="outline">
+                              {Array.isArray(admin.created_orgs) ? admin.created_orgs.length : 0} orgs
+                            </Badge>
+                            <Button
+                              size="sm"
+                              onClick={() => handleAdminLogin(admin)}
+                              className="bg-blue-600 hover:bg-blue-700"
+                            >
+                              <LogIn className="w-4 h-4 mr-1" />
+                              Login
+                            </Button>
                           </div>
                         </div>
-                        <div className="flex items-center space-x-2">
-                          <Badge 
-                            variant={admin.accountStatus === 'active' ? 'default' : 'secondary'}
-                            className={admin.accountStatus === 'active' ? 'bg-green-100 text-green-800' : ''}
-                          >
-                            {admin.accountStatus}
-                          </Badge>
-                          <Badge variant="outline">
-                            {admin.created_orgs?.length || 0} orgs
-                          </Badge>
-                        </div>
+
+                        {/* Show admin details if logged in */}
+                        {adminTokens[admin._id] && (
+                          <div className="mt-4 p-4 bg-white rounded-lg border">
+                            <h5 className="font-semibold text-gray-900 mb-3">Admin Details & Organizations</h5>
+                            
+                            {/* Admin Info */}
+                            <div className="mb-4 p-3 bg-blue-50 rounded-lg">
+                              <div className="grid grid-cols-2 gap-2 text-sm">
+                                <div><span className="font-medium">ID:</span> {adminTokens[admin._id]._id}</div>
+                                <div><span className="font-medium">Account Type:</span> {adminTokens[admin._id].accountType}</div>
+                              </div>
+                            </div>
+
+                            {/* Organizations */}
+                            {adminTokens[admin._id].created_orgs && adminTokens[admin._id].created_orgs.length > 0 && (
+                              <div className="space-y-3">
+                                <h6 className="font-medium text-gray-900 flex items-center">
+                                  <Building className="w-4 h-4 mr-1" />
+                                  Organizations ({adminTokens[admin._id].created_orgs.length})
+                                </h6>
+                                {adminTokens[admin._id].created_orgs.map((org: any) => (
+                                  <div key={org._id} className="p-3 bg-gray-50 rounded-lg">
+                                    <div className="flex justify-between items-start mb-2">
+                                      <h7 className="font-medium text-gray-900">{org.name}</h7>
+                                      <div className="flex space-x-2 text-xs">
+                                        <Badge variant="outline">{org.numberOfEmployees} employees</Badge>
+                                        <Badge variant="outline">{org.numberOfDepartments} departments</Badge>
+                                      </div>
+                                    </div>
+                                    
+                                    {/* Departments */}
+                                    {org.departments && org.departments.length > 0 && (
+                                      <div className="mt-2">
+                                        <p className="text-sm font-medium text-gray-700 mb-1 flex items-center">
+                                          <FolderOpen className="w-3 h-3 mr-1" />
+                                          Departments:
+                                        </p>
+                                        <div className="space-y-1">
+                                          {org.departments.map((dept: any) => (
+                                            <div key={dept._id} className="text-xs bg-white p-2 rounded border">
+                                              <div className="flex justify-between">
+                                                <span className="font-medium">{dept.name}</span>
+                                                <Badge variant="outline" className="text-xs">
+                                                  {dept.courses?.length || 0} courses
+                                                </Badge>
+                                              </div>
+                                              <p className="text-gray-500 mt-1">{dept.description}</p>
+                                            </div>
+                                          ))}
+                                        </div>
+                                      </div>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </div>
                     ))
                   ) : (
