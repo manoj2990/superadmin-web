@@ -8,7 +8,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Users, Plus } from 'lucide-react';
 import axios from 'axios';
 import AdminCard from './AdminCard';
-
+import {endpoints} from '@/api/api'
 interface Admin {
   _id: string;
   name: string;
@@ -22,37 +22,33 @@ interface Admin {
 interface AdminListProps {
   admins: Admin[];
   setAdmins: React.Dispatch<React.SetStateAction<Admin[]>>;
-  adminTokens: {[key: string]: any};
-  setAdminTokens: React.Dispatch<React.SetStateAction<{[key: string]: any}>>;
+  
 }
 
-const AdminList = ({ admins, setAdmins, adminTokens, setAdminTokens }: AdminListProps) => {
+const AdminList = ({ admins, setAdmins}: AdminListProps) => {
   const [newAdmin, setNewAdmin] = useState({
     email: '',
-    password: '123',
+    password: '',
     name: '',
     accountType: 'admin'
   });
   const [isCreating, setIsCreating] = useState(false);
   const { toast } = useToast();
 
-  const generateRandomEmail = () => {
-    const randomName = Math.random().toString(36).substring(2, 10);
-    return `admin${randomName}@example.com`;
-  };
 
   const handleCreateAdmin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsCreating(true);
 
     try {
-      const token = localStorage.getItem('authToken');
+      
       const adminData = {
         ...newAdmin,
-        email: newAdmin.email || generateRandomEmail()
+  
       };
+       const token = localStorage.getItem('authToken');
 
-      const response = await axios.post('http://localhost:4000/api/v1/superadmin/create-admin', adminData, {
+      const response = await axios.post(endpoints.CREATE_ADMIN, adminData, {
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
@@ -60,14 +56,15 @@ const AdminList = ({ admins, setAdmins, adminTokens, setAdminTokens }: AdminList
       });
 
       if (response.data && response.data.data) {
+        
         setAdmins(prev => [...prev, response.data.data]);
         setNewAdmin({
           email: '',
-          password: '123',
+          password: '',
           name: '',
           accountType: 'admin'
         });
-        
+       
         toast({
           title: "Admin Created Successfully",
           description: `New admin ${adminData.name} has been created.`,
@@ -85,40 +82,7 @@ const AdminList = ({ admins, setAdmins, adminTokens, setAdminTokens }: AdminList
     }
   };
 
-  const handleAdminLogin = async (admin: Admin) => {
-    try {
-      const loginData = {
-        email: admin.email,
-        password: "123"
-      };
-
-      const response = await axios.post('http://localhost:4000/api/v1/auth/login', loginData, {
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (response.data && response.data.data) {
-        setAdminTokens(prev => ({
-          ...prev,
-          [admin._id]: response.data.data
-        }));
-        
-        toast({
-          title: "Admin Login Successful",
-          description: `Logged in as ${admin.name}`,
-        });
-      }
-    } catch (error) {
-      console.error('Admin login error:', error);
-      toast({
-        title: "Login Failed",
-        description: `Failed to login as ${admin.name}`,
-        variant: "destructive",
-      });
-    }
-  };
-
+ 
   return (
     <Card>
       <CardHeader>
@@ -150,13 +114,13 @@ const AdminList = ({ admins, setAdmins, adminTokens, setAdminTokens }: AdminList
                 />
               </div>
               <div>
-                <Label htmlFor="adminEmail">Email (optional)</Label>
+                <Label htmlFor="adminEmail">Email</Label>
                 <Input
                   id="adminEmail"
                   type="email"
                   value={newAdmin.email}
                   onChange={(e) => setNewAdmin(prev => ({ ...prev, email: e.target.value }))}
-                  placeholder="Will auto-generate if empty"
+                  placeholder="admin@gmail.com"
                 />
               </div>
             </div>
@@ -194,13 +158,13 @@ const AdminList = ({ admins, setAdmins, adminTokens, setAdminTokens }: AdminList
 
         {/* Admin List */}
         <div className="space-y-4">
+        
           {admins.length > 0 ? (
-            admins.map((admin) => (
+            admins.map((admin,index) => (
               <AdminCard
-                key={admin._id}
+                key={index}
                 admin={admin}
-                adminToken={adminTokens[admin._id]}
-                onAdminLogin={handleAdminLogin}
+               
               />
             ))
           ) : (

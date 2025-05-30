@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Shield } from 'lucide-react';
-
+import {endpoints} from '@/api/api'
 interface LoginPageProps {
   onLoginSuccess: (userData: any) => void;
 }
@@ -17,13 +17,15 @@ const LoginPage = ({ onLoginSuccess }: LoginPageProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
+
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
     try {
-      // Simulate API call - replace with actual endpoint
-      const response = await fetch('http://localhost:4000/api/v1/auth/login', {
+     
+      const response = await fetch(endpoints.LOGIN_API, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -34,16 +36,24 @@ const LoginPage = ({ onLoginSuccess }: LoginPageProps) => {
       if (response.ok) {
         const data = await response.json();
         
-        // Store token in localStorage
+       
         localStorage.setItem('authToken', data.data.token);
-        localStorage.setItem('userData', JSON.stringify(data.data));
+        const superadmindata = {
+          _id:data.data._id,
+          name:data.data.name,
+          email:data.data.email,
+          accountStatus:data.data.accountStatus,
+          accountType:data.data.accountType,
+          adminCount:data.data.adminCount
+        }
+        localStorage.setItem('superAdminData', JSON.stringify(superadmindata));
         
         toast({
           title: "Login Successful",
           description: "Welcome back to the admin dashboard!",
         });
         
-        onLoginSuccess(data.data);
+        onLoginSuccess(superadmindata);
       } else {
         throw new Error('Invalid credentials');
       }
@@ -66,10 +76,10 @@ const LoginPage = ({ onLoginSuccess }: LoginPageProps) => {
             <Shield className="w-6 h-6 text-white" />
           </div>
           <CardTitle className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-            Admin Portal
+            Super Admin Portal
           </CardTitle>
           <CardDescription className="text-gray-600">
-            Sign in to access the super admin dashboard
+            Sign in to access the Super Admin dashboard
           </CardDescription>
         </CardHeader>
         <CardContent>

@@ -5,7 +5,9 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Shield, Users, Crown, LogOut } from 'lucide-react';
 import AdminList from './AdminList';
-
+import { useToast } from '@/hooks/use-toast';
+import axios from 'axios';
+import {endpoints} from '@/api/api'
 interface Admin {
   _id: string;
   name: string;
@@ -19,21 +21,62 @@ interface Admin {
 interface SuperAdminDashboardProps {
   userData: any;
   onLogout: () => void;
+ 
 }
 
-const SuperAdminDashboard = ({ userData, onLogout }: SuperAdminDashboardProps) => {
+const SuperAdminDashboard = ({ userData, onLogout}: SuperAdminDashboardProps) => {
   const [admins, setAdmins] = useState<Admin[]>([]);
-  const [adminTokens, setAdminTokens] = useState<{[key: string]: any}>({});
+  const { toast } = useToast();
+  
 
-  useEffect(() => {
-    if (userData.adminsCreatedBySuperAdmin) {
-      setAdmins(userData.adminsCreatedBySuperAdmin);
-    }
-  }, [userData]);
+useEffect(() => {
+    const fetchAdmins = async () => {
+      try {
+        const token = localStorage.getItem('authToken');
+        if (!token) {
+          throw new Error('No authentication token found');
+        }
+
+        const response = await axios.get<{ data: Admin[] }>(
+          endpoints.GET_ALL_ADMINS,
+         
+          {
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`,
+            },
+          }
+        );
+
+      
+        if (response.data && Array.isArray(response.data.data)) {
+          
+          setAdmins(response.data.data);
+          toast({
+            title: 'Admins Fetched Successfully',
+            description: `Loaded ${response.data.data.length} admins.`,
+          });
+        } else {
+          throw new Error('Invalid response format');
+        }
+      } catch (error) {
+        const axiosError = error;
+        console.error('Fetch admins error:', axiosError);
+        toast({
+          title: 'Fetch Failed',
+          description:
+            axiosError.response?.data?.message || 'Failed to fetch admins. Please try again.',
+          variant: 'destructive',
+        });
+      }
+    };
+
+    fetchAdmins();
+  }, [userData, toast]);
 
   const handleLogout = () => {
     localStorage.removeItem('authToken');
-    localStorage.removeItem('userData');
+    localStorage.removeItem('superAdminData');
     onLogout();
   };
 
@@ -161,8 +204,8 @@ const SuperAdminDashboard = ({ userData, onLogout }: SuperAdminDashboardProps) =
             <AdminList 
               admins={admins}
               setAdmins={setAdmins}
-              adminTokens={adminTokens}
-              setAdminTokens={setAdminTokens}
+    
+           
             />
           </TabsContent>
         </Tabs>
