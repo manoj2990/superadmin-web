@@ -8,6 +8,8 @@ import AdminList from './AdminList';
 import { useToast } from '@/hooks/use-toast';
 import axios from 'axios';
 import {endpoints} from '@/api/api'
+import AvatarList from './AvatarList';
+
 interface Admin {
   _id: string;
   name: string;
@@ -156,7 +158,7 @@ useEffect(() => {
 
         {/* Tabs */}
         <Tabs defaultValue="admins" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2 lg:w-[400px]">
+          <TabsList className="grid w-full grid-cols-3 lg:w-[400px]">
             <TabsTrigger value="superadmin" className="flex items-center space-x-2">
               <Crown className="w-4 h-4" />
               <span>Super Admin</span>
@@ -164,6 +166,11 @@ useEffect(() => {
             <TabsTrigger value="admins" className="flex items-center space-x-2">
               <Users className="w-4 h-4" />
               <span>Admins</span>
+            </TabsTrigger>
+
+              <TabsTrigger value="avatars" className="flex items-center space-x-2">
+              <Users className="w-4 h-4" />
+              <span>Avatars</span>
             </TabsTrigger>
           </TabsList>
 
@@ -204,9 +211,12 @@ useEffect(() => {
             <AdminList 
               admins={admins}
               setAdmins={setAdmins}
-    
-           
             />
+          </TabsContent>
+
+          {/* {Avatar Tab} */}
+         <TabsContent value="avatars" className="space-y-6">
+            <AvatarList />
           </TabsContent>
         </Tabs>
       </main>

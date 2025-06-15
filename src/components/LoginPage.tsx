@@ -7,6 +7,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Shield } from 'lucide-react';
 import {endpoints} from '@/api/api'
+
+const LOGO_URL = "/logo.png";
+
 interface LoginPageProps {
   onLoginSuccess: (userData: any) => void;
 }
@@ -73,7 +76,11 @@ const LoginPage = ({ onLoginSuccess }: LoginPageProps) => {
       <Card className="w-full max-w-md shadow-xl border-0 bg-white/80 backdrop-blur-sm">
         <CardHeader className="text-center space-y-2">
           <div className="mx-auto w-12 h-12 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center">
-            <Shield className="w-6 h-6 text-white" />
+          <img
+              src={LOGO_URL}
+              alt="Company Logo"
+              className="h-20 w-auto"
+            />
           </div>
           <CardTitle className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
             Super Admin Portal
