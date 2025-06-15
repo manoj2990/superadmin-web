@@ -1,14 +1,14 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Shield, Users, Crown, LogOut, Settings } from 'lucide-react';
+import { Shield, Users, Crown, LogOut } from 'lucide-react';
 import AdminList from './AdminList';
 import { useToast } from '@/hooks/use-toast';
 import axios from 'axios';
 import {endpoints} from '@/api/api'
 import AvatarList from './AvatarList';
-import ComprehensiveAdminDashboard from './admin/ComprehensiveAdminDashboard';
 
 interface Admin {
   _id: string;
@@ -158,7 +158,7 @@ useEffect(() => {
 
         {/* Tabs */}
         <Tabs defaultValue="admins" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4 lg:w-[500px]">
+          <TabsList className="grid w-full grid-cols-3 lg:w-[400px]">
             <TabsTrigger value="superadmin" className="flex items-center space-x-2">
               <Crown className="w-4 h-4" />
               <span>Super Admin</span>
@@ -167,11 +167,8 @@ useEffect(() => {
               <Users className="w-4 h-4" />
               <span>Admins</span>
             </TabsTrigger>
-            <TabsTrigger value="comprehensive" className="flex items-center space-x-2">
-              <Settings className="w-4 h-4" />
-              <span>Advanced</span>
-            </TabsTrigger>
-            <TabsTrigger value="avatars" className="flex items-center space-x-2">
+
+              <TabsTrigger value="avatars" className="flex items-center space-x-2">
               <Users className="w-4 h-4" />
               <span>Avatars</span>
             </TabsTrigger>
@@ -209,7 +206,7 @@ useEffect(() => {
             </Card>
           </TabsContent>
 
-          {/* Basic Admins Tab */}
+          {/* Admins Tab */}
           <TabsContent value="admins" className="space-y-6">
             <AdminList 
               admins={admins}
@@ -217,13 +214,8 @@ useEffect(() => {
             />
           </TabsContent>
 
-          {/* Comprehensive Admin Management Tab */}
-          <TabsContent value="comprehensive" className="space-y-6">
-            <ComprehensiveAdminDashboard />
-          </TabsContent>
-
-          {/* Avatar Tab */}
-          <TabsContent value="avatars" className="space-y-6">
+          {/* {Avatar Tab} */}
+         <TabsContent value="avatars" className="space-y-6">
             <AvatarList />
           </TabsContent>
         </Tabs>
